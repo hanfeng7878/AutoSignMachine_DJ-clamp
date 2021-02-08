@@ -1,103 +1,29 @@
 let crypto = require("crypto");
-let CryptoJS = require("crypto-js");
 let moment = require("moment");
-let AES = require("./handlers/PAES");
-const useragent = (options) =>
-  `Mozilla/5.0 (Linux; Android 7.1.2; SM-G977N Build/LMY48Z; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/75.0.3770.143 Mobile Safari/537.36; unicom{version:android@8.0102,desmobile:${options.user}};devicetype{deviceBrand:samsung,deviceModel:SM-G977N};{yw_code:}`;
+let AES = require("./handlers/PAES.js");
+const useragent = require("./handlers/myPhone").useragent;
+const gameEvents = require("./handlers/dailyEvent");
+const referer =
+  "https://m.jf.10010.com/cms/yuech/unicom-integral-ui/yuech-qd/bcow/index.html?jump=sign";
+/**
+ * 入口:首页=>签到=>免费抽 赢牛拿奖
+ */
+let bcow;
 module.exports = bcow = {
   doTask: async (axios, options) => {
-    console.log("🔔开始抽牛卡\n");
-    let cookies = await getOpenPlatLine(axios, options);
-    let data = await postFreeLoginRock(axios, options, cookies);
+    console.log("🔔 开始翻牛牌\n");
+    let cookies = await bcow.getOpenPlatLine(axios, options);
+    let data = await bcow.postFreeLoginRock(axios, options, cookies);
+    await bcow.postTimesDrawForPrize(axios, options, cookies, data);
   },
-  getOpenPlatLine: async (axios, options) => {
-    let searchParams = {};
-    let result = await axios
-      .request({
-        baseURL: "https://m.client.10010.com/",
-        headers: {
-          "user-agent": useragent(options),
-          referer: `https://img.client.10010.com/`,
-          origin: "https://img.client.10010.com",
-        },
-        url: `https://m.client.10010.com/mobileService/openPlatform/openPlatLine.htm?to_url=https://m.jf.10010.com/jf-order/avoidLogin/forActive/ncow&duanlianjieabc=tbLlf`,
-        method: "GET",
-        transformResponse: (data, headers) => {
-          if ("location" in headers) {
-            let uu = new URL(headers.location);
-            let pp = {};
-            for (let p of uu.searchParams) {
-              pp[p[0]] = p[1];
-            }
-            if ("ticket" in pp) {
-              searchParams = pp;
-            }
-          }
-          return data;
-        },
-      })
-      .catch((err) => console.log(err));
-    let jar1 = result.config.jar;
-
-    let cookiesJson = jar1.toJSON();
-    console.log(cookiesJson);
-    let ecs_token = cookiesJson.cookies.find((i) => i.key == "ecs_token");
-    if (!ecs_token) {
-      throw new Error("ecs_token缺失");
-    }
-    ecs_token = ecs_token.value;
-    let jfid = cookiesJson.cookies.find((i) => i.key == "_jf_id");
-    if (!jfid) {
-      throw new Error("jfid缺失");
-    }
-    jfid = jfid.value;
-    return { jfid, searchParams, jar1 };
-  },
-  postFreeLoginRock: async (axios, options, { jfid, searchParams, jar1 }) => {
-    let keyArr = AES.secretkeyArray();
-    let keyrdm = Math.floor(Math.random() * 5);
-
-    let params = {
-      activityId: "Ac-yccnk",
-      userCookie: jfid,
-      userNumber: searchParams.userNumber,
-      time: new Date().getTime(),
-    };
-    let reqdata = {
-      params: encrypt(JSON.stringify(params), keyArr[keyrdm]) + keyrdm,
-      parKey: keyArr,
-    };
-    //foods list
-    let res = await axios
-      .request({
-        baseURL: "https://m.jf.10010.com/",
-        headers: {
-          "user-agent": useragent(options),
-          referer:
-            "https://m.jf.10010.com/cms/yuech/unicom-integral-ui/yuech-qd/bcow/index.html?jump=sign",
-          origin: "https://img.jf.10010.com",
-          "Content-Type": "application/json",
-        },
-        jar: jar1,
-        url: `/jf-yuech/p/freeLoginRock`,
-        method: "post",
-        data: reqdata,
-      })
-      .catch((err) => console.log(err));
-
-    result = res.data;
-    if (result.code !== 0) {
-      throw new Error(result.message);
-    }
-    let activity = result.data.activityInfos.activityVOs[0]; //available items on the list from request
-    let Authorization = result.data.token.access_token;
-    let freeTimes = activity.activityTimesInfo.freeTimes;
-    let advertTimes = activity.activityTimesInfo.advertTimes;
-    return { activity, Authorization, freeTimes, advertTimes };
-  },
+  getOpenPlatLine: gameEvents.getOpenPlatLine(
+    `https://m.client.10010.com/mobileService/openPlatform/openPlatLine.htm?to_url=https://m.jf.10010.com/jf-order/avoidLogin/forActive/ncow&duanlianjieabc=tbLlf`
+  ),
+  postFreeLoginRock: gameEvents.postFreeLoginRock(referer),
   postTimesDrawForPrize: async (
     axios,
     options,
+    // eslint-disable-next-line no-unused-vars
     { jfid, searchParams, jar1 },
     { activity, Authorization, freeTimes, advertTimes }
   ) => {
@@ -118,7 +44,7 @@ module.exports = bcow = {
         break;
       }
 
-      let currentTimes = 1 + 4 - (freeTimes + advertTimes) + 1;
+      // let currentTimes = 1 + 4 - (freeTimes + advertTimes) + 1;
 
       let p1 = {
         activityId: activity.activityId,
@@ -143,7 +69,7 @@ module.exports = bcow = {
           version: `android@8.0102`,
           codeId: 945689604,
         };
-        params["sign"] = sign([
+        params["sign"] = AES.sign([
           params.arguments1,
           params.arguments2,
           params.arguments3,
@@ -159,14 +85,14 @@ module.exports = bcow = {
           .digest("hex");
         params["arguments4"] = new Date().getTime();
 
-        result = await require("./taskcallback").reward(axios, {
+        await require("./taskcallback").reward(axios, {
           ...options,
           params,
           jar: jar1,
         });
 
         let timestamp = moment().format("YYYYMMDDHHmmss");
-        result = await axios.request({
+        await axios.request({
           headers: {
             "user-agent": useragent(options),
             referer: `https://img.client.10010.com/`,
@@ -184,6 +110,7 @@ module.exports = bcow = {
           version: "8.0102",
         };
         advertTimes--;
+        // eslint-disable-next-line no-unused-vars
         orderId = params["orderId"];
       } else {
         freeTimes--;
@@ -191,20 +118,19 @@ module.exports = bcow = {
 
       //join the game
       let n = Math.floor(5 * Math.random());
-      let i = newjiamarr();
-      params = {
-        params: encrypt(JSON.stringify(p1), i["zfc"]) + n,
+      let i = AES.newjiamarr();
+      let params = {
+        params: AES.encrypt(JSON.stringify(p1), i["zfc"]) + n,
         parKey: i["arr"],
       };
 
-      res = await axios
+      let res = await axios
         .request({
           baseURL: "https://m.jf.10010.com/",
           headers: {
             Authorization: `Bearer ${Authorization}`,
             "user-agent": useragent(options),
-            referer:
-              "https://m.jf.10010.com/cms/yuech/unicom-integral-ui/yuech-qd/bcow/index.html?jump=sign",
+            referer,
             origin: "https://m.jf.10010.com",
             "Content-Type": "application/json;charset=UTF-8",
           },
@@ -214,36 +140,29 @@ module.exports = bcow = {
         })
         .catch((err) => console.log(err));
 
-      console.log(res.data);
-      if (res.data.code !== 0) {
-        throw new Error(res.data.message);
-      } else {
-        if (res.data.data.code !== "0") {
-          throw new Error(res.data.data.result);
-        }
-      }
-
-      //TODO: coding in here now...
-      result = res.data;
+      let result = res.data;
       if (result.code !== 0) {
         console.log("翻牛牌送好礼:", result.message);
       } else {
         console.log(
           "翻牛牌送好礼:",
-          result.data.status === "中奖"
-            ? result.data.prizeName
-            : result.data.status
+          result.data.drawResultPO !== null
+            ? result.data.drawResultPO.prizeName
+            : "未中奖"
         );
-        if (result.data.doublingStatus) {
-          console.log("提交积分翻倍");
-          await dailyYYY.lookVideoDouble(axios, {
+        if (
+          result.data.drawResultPO !== null &&
+          result.data.drawResultPO.doublingStatus
+        ) {
+          console.log("🌈提交积分翻倍");
+          await bcow.lookVideoDouble(axios, {
             ...options,
           });
-          await dailyYYY.lookVideoDoubleResult(axios, {
+          await bcow.lookVideoDoubleResult(axios, {
             ...options,
             Authorization,
             activityId: activity.activityId,
-            winningRecordId: result.data.winningRecordId,
+            winningRecordId: result.data.drawResultPO.winningRecordId,
           });
         }
       }
@@ -265,7 +184,7 @@ module.exports = bcow = {
       version: `android@8.0102`,
       codeId: 945689604,
     };
-    params["sign"] = sign([
+    params["sign"] = AES.sign([
       params.arguments1,
       params.arguments2,
       params.arguments3,
@@ -299,7 +218,7 @@ module.exports = bcow = {
       version: `android@8.0100`,
       codeId: 945689604,
     };
-    params["sign"] = sign([
+    params["sign"] = AES.sign([
       params.arguments1,
       params.arguments2,
       params.arguments3,
@@ -311,24 +230,5 @@ module.exports = bcow = {
       jar,
     });
   },
-  lookVideoDoubleResult: async (axios, options) => {
-    let { Authorization, activityId, winningRecordId } = options;
-    const useragent = `Mozilla/5.0 (Linux; Android 7.1.2; SM-G977N Build/LMY48Z; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/75.0.3770.143 Mobile Safari/537.36; unicom{version:android@8.0100,desmobile:${options.user}};devicetype{deviceBrand:samsung,deviceModel:SM-G977N};{yw_code:}`;
-    let res = await axios.request({
-      headers: {
-        Authorization: `Bearer ${Authorization}`,
-        "user-agent": useragent,
-        referer: "https://img.jf.10010.com/",
-        origin: "https://img.jf.10010.com",
-      },
-      url: `https://m.jf.10010.com/jf-yuech/api/gameResult/doublingIntegral?activityId=${activityId}&winningRecordId=${winningRecordId}`,
-      method: "get",
-    });
-    result = res.data;
-    if (result.code !== 0) {
-      console.log("翻牛牌送好礼翻倍结果:", result.message);
-    } else {
-      console.log("翻牛牌送好礼翻倍结果:", result.data);
-    }
-  },
+  lookVideoDoubleResult: gameEvents.lookVideoDoubleResult("翻牛牌送好礼"),
 };

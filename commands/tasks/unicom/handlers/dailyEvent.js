@@ -52,20 +52,15 @@ let getOpenPlatLine = (url) => {
 /**
  * @param {String} referer request referer absolute path
  */
-let postFreeLoginRock = (referer) => {
+let postFreeLoginRock = (referer, freeLoginRockID) => {
   return async (axios, options, { jfid, searchParams, jar1 }) => {
-    let keyArr = AES.secretkeyArray();
-    let keyrdm = Math.floor(Math.random() * 5);
     let params = {
-      activityId: "Ac-yccnk",
+      activityId: freeLoginRockID,
       userCookie: jfid,
       userNumber: searchParams.userNumber,
       time: new Date().getTime(),
     };
-    let reqdata = {
-      params: AES.encrypt(JSON.stringify(params), keyArr[keyrdm]) + keyrdm,
-      parKey: keyArr,
-    };
+    let reqdata = encodeParams(params, false);
     //foods list
     let res = await axios
       .request({
@@ -87,10 +82,54 @@ let postFreeLoginRock = (referer) => {
     if (result.code !== 0) {
       throw new Error(result.message);
     }
-    let activity = result.data.activityInfos.activityVOs[0]; //available items on the list from request
-    let Authorization = result.data.token.access_token;
-    let freeTimes = activity.activityTimesInfo.freeTimes;
-    let advertTimes = activity.activityTimesInfo.advertTimes;
+
+    let activity, Authorization, freeTimes, advertTimes;
+    activity = result.data.activityInfos.activityVOs[0]; //available items on the list from request
+    Authorization = result.data.token.access_token;
+    freeTimes = activity.activityTimesInfo.freeTimes;
+    advertTimes = activity.activityTimesInfo.advertTimes;
+
+    return { activity, Authorization, freeTimes, advertTimes };
+  };
+};
+
+let postFreeLogin = (referer, freeLoginID) => {
+  return async (axios, options, { jfid, searchParams, jar1 }) => {
+    let params = {
+      activityId: freeLoginID,
+      userCookie: jfid,
+      userNumber: searchParams.userNumber,
+      time: new Date().getTime(),
+    };
+
+    let reqdata = {
+      params: AES.encrypt(JSON.stringify(params), "5de7e29919fad4d5"),
+    };
+    let res = await axios
+      .request({
+        baseURL: "https://m.jf.10010.com/",
+        headers: {
+          "user-agent": useragent(options),
+          Authorization: "Bearer null",
+          referer,
+          origin: "https://img.jf.10010.com",
+          "Content-Type": "application/json",
+        },
+        jar: jar1,
+        url: `/jf-yuech/p/freeLogin`,
+        method: "post",
+        data: reqdata,
+      })
+      .catch((err) => console.log(err));
+    let result = res.data;
+    if (result.code !== 0) {
+      throw new Error(result.message);
+    }
+    let activity, Authorization, freeTimes, advertTimes;
+    activity = result.data.activity;
+    Authorization = result.data.token.access_token;
+    freeTimes = activity.freeGameTimes;
+    advertTimes = activity.advertLimitNum;
     return { activity, Authorization, freeTimes, advertTimes };
   };
 };
@@ -116,8 +155,33 @@ let lookVideoDoubleResult = (title) => {
     }
   };
 };
+
+/**
+ *
+ * @param {JSON} p1 提交参数
+ * @param {boolean} isNewGame 新游戏更新后的参数方法
+ */
+let encodeParams = (p1, isNewGame = false) => {
+  let n = Math.floor(5 * Math.random());
+  if (isNewGame) {
+    //join the game
+    let i = AES.newjiamarr();
+    return {
+      params: AES.encrypt(JSON.stringify(p1), i["zfc"]) + n,
+      parKey: i["arr"],
+    };
+  } else {
+    let i = AES.secretkeyArray();
+    return {
+      params: AES.encrypt(JSON.stringify(p1), i[n]) + n,
+      parKey: i,
+    };
+  }
+};
 module.exports = {
   getOpenPlatLine,
   postFreeLoginRock,
+  postFreeLogin,
   lookVideoDoubleResult,
+  encodeParams,
 };

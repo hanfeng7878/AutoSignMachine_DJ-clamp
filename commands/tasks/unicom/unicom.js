@@ -183,7 +183,7 @@ var start = async (params) => {
     taskOption
   );
 
-  // 首页-签到有礼-免费抽-拿iPhone12(摇一摇)
+  // 首页-签到有礼-免费抽-拿iPhone12(摇一摇) TODO: 待上线
   await scheduler.regTask(
     "dailyYYQ",
     async (request) => {

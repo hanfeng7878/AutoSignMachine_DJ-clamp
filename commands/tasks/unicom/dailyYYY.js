@@ -2,6 +2,7 @@ var crypto = require("crypto");
 var CryptoJS = require("crypto-js");
 var moment = require("moment");
 const gameEvents = require("./handlers/dailyEvent");
+const useragent = require("./handlers/myPhone").useragent;
 // 摇一摇送好礼
 var sign = (data) => {
   let str = "integralofficial&";
@@ -59,13 +60,12 @@ var encrypt = function (word, keyStr) {
 
 var dailyYYY = {
   doTask: async (axios, options) => {
-    const useragent = `Mozilla/5.0 (Linux; Android 7.1.2; SM-G977N Build/LMY48Z; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/75.0.3770.143 Mobile Safari/537.36; unicom{version:android@8.0100,desmobile:${options.user}};devicetype{deviceBrand:samsung,deviceModel:SM-G977N};{yw_code:}`;
     let searchParams = {};
     let result = await axios
       .request({
         baseURL: "https://m.client.10010.com/",
         headers: {
-          "user-agent": useragent,
+          "user-agent": useragent(options),
           referer: `https://img.client.10010.com/`,
           origin: "https://img.client.10010.com",
         },
@@ -123,7 +123,7 @@ var dailyYYY = {
       .request({
         baseURL: "https://m.jf.10010.com/",
         headers: {
-          "user-agent": useragent,
+          "user-agent": useragent(options),
           referer:
             "https://m.jf.10010.com/cms/yuech/unicom-integral-ui/yuech-Blindbox/shake/index.html?jump=sign",
           origin: "https://img.jf.10010.com",
@@ -148,10 +148,10 @@ var dailyYYY = {
 
     do {
       let orderId = "";
-      let currentTimes = 1 + 4 - (freeTimes + advertTimes) + 1;
+      // let currentTimes = 1 + 4 - (freeTimes + advertTimes) + 1;
       console.log(
         "已消耗机会",
-        currentTimes,
+        1 + 4 - (freeTimes + advertTimes),
         "剩余免费机会",
         freeTimes,
         "看视频广告机会",
@@ -206,7 +206,7 @@ var dailyYYY = {
         let timestamp = moment().format("YYYYMMDDHHmmss");
         result = await axios.request({
           headers: {
-            "user-agent": useragent,
+            "user-agent": useragent(options),
             referer: `https://img.client.10010.com/`,
           },
           url: `https://m.jf.10010.com/jf-order/avoidLogin/forActive/yyyqd?ticket=${searchParams.ticket}&type=02&version=android@8.0100&timestamp=${timestamp}&desmobile=${options.user}&num=0&postage=${searchParams.postage}&duanlianjieabc=tbkwx&userNumber=${options.user}`,
@@ -234,7 +234,7 @@ var dailyYYY = {
         .request({
           headers: {
             Authorization: `Bearer ${Authorization}`,
-            "user-agent": useragent,
+            "user-agent": useragent(options),
             referer:
               "https://m.jf.10010.com/cms/yuech/unicom-integral-ui/yuech-Blindbox/shake/index.html?jump=sign",
             origin: "https://m.jf.10010.com",
@@ -245,19 +245,6 @@ var dailyYYY = {
           data: params,
         })
         .catch((err) => console.log(err));
-      //deprecated from official API call
-      // res = await axios.request({
-      //   headers: {
-      //     "user-agent": useragent,
-      //     "Authorization": `Bearer ${Authorization}`,
-      //     "referer": "https://m.jf.10010.com/cms/yuech/unicom-integral-ui/yuech-Blindbox/shake/index.html?jump=sign",
-      //     "Content-Type": "application/x-www-form-urlencoded"
-      //   },
-      //   jar: null,
-      //   url: `https://m.jf.10010.com/jf-yuech/api/gameResultV2/consumptionGameTimes`,
-      //   method: 'get',
-      //   params: transParams(p1)
-      // }).catch(err => console.log(err))
 
       console.log(res.data);
       if (res.data.code !== 0) {
@@ -282,7 +269,7 @@ var dailyYYY = {
       res = await axios.request({
         headers: {
           Authorization: `Bearer ${Authorization}`,
-          "user-agent": useragent,
+          "user-agent": useragent(options),
           referer:
             "https://m.jf.10010.com/cms/yuech/unicom-integral-ui/yuech-Blindbox/shake/index.html?jump=sign",
           origin: "https://m.jf.10010.com",
@@ -320,6 +307,7 @@ var dailyYYY = {
       }
 
       console.log("等待15秒再继续");
+      // eslint-disable-next-line no-unused-vars
       await new Promise((resolve, reject) => setTimeout(resolve, 15 * 1000));
     } while (freeTimes || advertTimes);
   },
@@ -331,7 +319,7 @@ var dailyYYY = {
       arguments4: new Date().getTime(), // time
       arguments6: "517050707",
       netWay: "Wifi",
-      version: `android@8.0100`,
+      version: `android@8.0102`,
     };
     params["sign"] = sign([
       params.arguments1,
@@ -379,26 +367,7 @@ var dailyYYY = {
       jar,
     });
   },
-  lookVideoDoubleResult: async (axios, options) => {
-    let { Authorization, activityId, winningRecordId } = options;
-    const useragent = `Mozilla/5.0 (Linux; Android 7.1.2; SM-G977N Build/LMY48Z; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/75.0.3770.143 Mobile Safari/537.36; unicom{version:android@8.0100,desmobile:${options.user}};devicetype{deviceBrand:samsung,deviceModel:SM-G977N};{yw_code:}`;
-    let res = await axios.request({
-      headers: {
-        Authorization: `Bearer ${Authorization}`,
-        "user-agent": useragent,
-        referer: "https://img.jf.10010.com/",
-        origin: "https://img.jf.10010.com",
-      },
-      url: `https://m.jf.10010.com/jf-yuech/api/gameResult/doublingIntegral?activityId=${activityId}&winningRecordId=${winningRecordId}`,
-      method: "get",
-    });
-    result = res.data;
-    if (result.code !== 0) {
-      console.log("摇一摇送好礼翻倍结果:", result.message);
-    } else {
-      console.log("摇一摇送好礼翻倍结果:", result.data);
-    }
-  },
+  lookVideoDoubleResult: gameEvents.lookVideoDoubleResult("摇一摇送好礼"),
 };
 
 module.exports = dailyYYY;

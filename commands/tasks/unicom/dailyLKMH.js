@@ -1,6 +1,5 @@
 var crypto = require("crypto");
-var CryptoJS = require("crypto-js");
-// let AES = require("./handlers/PAES.js");
+let { encrypt, sign } = require("./handlers/PAES.js");
 // const useragent = require("./handlers/myPhone").useragent;
 const gameEvents = require("./handlers/dailyEvent");
 
@@ -9,65 +8,6 @@ const gameEvents = require("./handlers/dailyEvent");
  * 入口:首页-签到有礼-免费抽-拆华为Pad(去抽奖)
  *
  */
-
-var transParams = (data) => {
-  let params = new URLSearchParams();
-  for (let item in data) {
-    params.append(item, data["" + item + ""]);
-  }
-  return params;
-};
-
-var sign = (data) => {
-  let str = "integralofficial&";
-  let params = [];
-  data.forEach((v, i) => {
-    if (v) {
-      params.push("arguments" + (i + 1) + v);
-    }
-  });
-  return crypto
-    .createHash("md5")
-    .update(str + params.join("&"))
-    .digest("hex");
-};
-
-var secretkeyArray = function () {
-  // prettier-ignore
-  for (var e = [], t = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E",
-    "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X",
-    "Y", "Z", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q",
-    "r", "s", "t", "u", "v", "w", "x", "y", "z"], i = 0;
-    5 > i;
-    i++) {
-    for (var n = "", s = 0; 16 > s; s++) {
-      var a = Math.floor(62 * Math.random());
-      n += t[a]
-    }
-    e.push(n)
-  }
-  return e;
-};
-
-var encrypt = function (word, keyStr) {
-  var key = CryptoJS.enc.Utf8.parse(keyStr);
-  var srcs = CryptoJS.enc.Utf8.parse(word);
-  var encrypted = CryptoJS.AES.encrypt(srcs, key, {
-    mode: CryptoJS.mode.ECB,
-    padding: CryptoJS.pad.Pkcs7,
-  });
-  return encrypted.toString();
-};
-
-var decrypt = function (word, keyStr) {
-  var key = CryptoJS.enc.Utf8.parse(keyStr);
-  var decrypted = CryptoJS.AES.decrypt(word, key, {
-    mode: CryptoJS.mode.ECB,
-    padding: CryptoJS.pad.Pkcs7,
-  });
-  return decrypted.toString(CryptoJS.enc.Utf8);
-};
-
 var dailyLKMH = {
   doTask: async (axios, options) => {
     const useragent = `Mozilla/5.0 (Linux; Android 7.1.2; SM-G977N Build/LMY48Z; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/75.0.3770.143 Mobile Safari/537.36; unicom{version:android@8.0100,desmobile:${options.user}};devicetype{deviceBrand:samsung,deviceModel:SM-G977N};{yw_code:}`;
@@ -107,9 +47,6 @@ var dailyLKMH = {
     }
     let jfid = cookiesJson.cookies.find((i) => i.key == "_jf_id");
     jfid = jfid.value;
-
-    let keyArr = secretkeyArray();
-    let keyrdm = Math.floor(Math.random() * 5);
 
     let params = {
       activityId: "Ac-f4557b3ac6004a48b1187e32ea343ca8",
@@ -250,6 +187,7 @@ var dailyLKMH = {
       }
 
       console.log("等待15秒再继续");
+      // eslint-disable-next-line no-unused-vars
       await new Promise((resolve, reject) => setTimeout(resolve, 15 * 1000));
     } while (--times);
   },
@@ -308,26 +246,7 @@ var dailyLKMH = {
       jar,
     });
   },
-  lookVideoDoubleResult: async (axios, options) => {
-    let { Authorization, activityId, winningRecordId } = options;
-    const useragent = `Mozilla/5.0 (Linux; Android 7.1.2; SM-G977N Build/LMY48Z; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/75.0.3770.143 Mobile Safari/537.36; unicom{version:android@8.0100,desmobile:${options.user}};devicetype{deviceBrand:samsung,deviceModel:SM-G977N};{yw_code:}`;
-    let res = await axios.request({
-      headers: {
-        Authorization: `Bearer ${Authorization}`,
-        "user-agent": useragent,
-        referer: "https://img.jf.10010.com/",
-        origin: "https://img.jf.10010.com",
-      },
-      url: `https://m.jf.10010.com/jf-yuech/api/gameResult/doublingIntegral?activityId=${activityId}&winningRecordId=${winningRecordId}`,
-      method: "get",
-    });
-    result = res.data;
-    if (result.code !== 0) {
-      console.log("签到小游戏盲盒翻倍结果:", result.message);
-    } else {
-      console.log("签到小游戏盲盒翻倍结果:", result.data);
-    }
-  },
+  lookVideoDoubleResult: gameEvents.lookVideoDoubleResult("签到小游戏盲盒"),
 };
 
 module.exports = dailyLKMH;

@@ -20,6 +20,7 @@ function encryption(data, key) {
 }
 
 //data 是你的准备解密的字符串,key是你的密钥
+// eslint-disable-next-line no-unused-vars
 function decryption(data, key) {
   var iv = "";
   var clearEncoding = "utf8";
@@ -54,6 +55,7 @@ var taskcallback = {
       method: "POST",
       data: transParams(params),
     });
+    console.log(data);
     if (data.code === "0000") {
       console.log(
         data.timeflag === "1"
@@ -224,6 +226,7 @@ var taskcallback = {
       method: "POST",
       data: transParams(params),
     });
+    console.log(data);
     if (data.code === "0000") {
       console.log("提交任务成功", data.prizeName + "+" + data.prizeCount);
     } else {

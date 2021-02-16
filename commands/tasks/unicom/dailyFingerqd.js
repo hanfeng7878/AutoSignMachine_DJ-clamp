@@ -31,7 +31,6 @@ let dailyFingerqd = {
       }
     );
     await dailyFingerqd.playGames(axios, options, cookies, times);
-    // {"activityId":"Ac-yc0001,Ac-yc0002,Ac-yc0003","userCookie":"x6kmkxgpeebdec09a87ecb2acb9be5ce0d4d806dzh07gbz9","userNumber":"18618211239","time":1613195671650}
   },
   playGames: async (
     axios,

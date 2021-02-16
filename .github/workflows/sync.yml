@@ -36,6 +36,6 @@ jobs:
         if: env.PAT
         with:
           type: now
-          from_branch: master
+          from_branch: dev
           target_branch: main
           github_token: ${{ secrets.PAT }}

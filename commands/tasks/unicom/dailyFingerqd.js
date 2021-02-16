@@ -87,10 +87,10 @@ let dailyFingerqd = {
         });
         console.log(result);
         playParams = {
-          activityId: "Ac-yc0001",
+          activityId: "Ac-yc0002",
           currentTimes: advertTimes,
           type: "广告",
-          integral: 10,
+          integral: 50,
           orderId: params["orderId"],
           phoneType: "android",
           version: "8.0102",
@@ -100,9 +100,9 @@ let dailyFingerqd = {
         // eslint-disable-next-line no-unused-vars
       } else {
         playParams = {
-          activityId: "Ac-yc0001",
+          activityId: "Ac-yc0002",
           currentTimes: freeTimes,
-          integral: 10,
+          integral: 50,
           type: "免费",
         };
         freeTimes--;
@@ -128,7 +128,7 @@ let dailyFingerqd = {
       //游戏要进行三轮,如果得不到积分就机会-1 正常情况是玩不到三轮的.
       let roundId = data.data.roundGame.roundId;
       let gamebits = {
-        activityId: "Ac-yc0001",
+        activityId: "Ac-yc0002",
         resultId: roundId,
       };
       for (let i = 0; i < 2; i++) {
@@ -169,7 +169,7 @@ let dailyFingerqd = {
             await dailyFingerqd.lookVideoDoubleResult(axios, {
               ...options,
               Authorization,
-              activityId: `Ac-yc0001`,
+              activityId: `Ac-yc0002`,
               winningRecordId: data.data.drawResultPO.winningRecordId,
             });
           }
